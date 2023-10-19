@@ -1,19 +1,20 @@
 package config
 
 import (
-	"os"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
 const (
-	EnvLocal = "local"
-	Prod	= "prod"
+	defaultHTTPPort     = "8080"
+	EnvLocal 			= "local"
+	Prod				= "prod"
 )
 
 type  (
 	Config struct {
+		
 		Environment	string
 		Sql			SqlConfig
 		Http		HttpConfig
@@ -37,18 +38,21 @@ type  (
 )
 
 func Init() (*Config, error) {
-	if err := parseConfigFile(os.Getenv("APP_ENV")); err != nil {
+	/*if err := parseConfigFile(os.Getenv("APP_ENV")); err != nil {
+		return nil, err
+	}*/
+	if err := parseConfigFile(); err != nil {
 		return nil, err
 	}
 
-	var config Config
-	if err := unmarshal(&config); err != nil {
+	var cfg Config
+	if err := unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
-	setEnvironment(&config)
+	setEnvironment(&cfg)
 
-	return &config, nil
+	return &cfg, nil
 }
 
 func unmarshal(config *Config) error {
@@ -59,18 +63,22 @@ func unmarshal(config *Config) error {
 	return nil
 }
 
-func setEnvironment (config *Config) {
-	config.Sql.User = os.Getenv("SQL_USER")
-	config.Sql.Password = os.Getenv("SQL_PASSWORD")
-	config.Sql.Host = os.Getenv("SQL_HOST")
-	config.Sql.Name = os.Getenv("SQL_NAME")
-	config.Sql.Charset = os.Getenv("SQL_CHARSET")
+func setEnvironment (cfg *Config) {
+	// Database
+	cfg.Sql.User = viper.GetString("mysql.user")
+	cfg.Sql.Password = viper.GetString("mysql.password")
+	cfg.Sql.Host = viper.GetString("mysql.host")
+	cfg.Sql.Name = viper.GetString("mysql.name")
+	cfg.Sql.Charset = viper.GetString("mysql.charset")
+
+	// Http
+	cfg.Http.Port = defaultHTTPPort
 }
 
-func parseConfigFile(env string) error {
-	viper.AddConfigPath("./")
-	viper.SetConfigType("env")
-	viper.SetConfigName("env")
+func parseConfigFile() error {
+	viper.AddConfigPath("../../config/")
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("config")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return err

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"go-gc-community/internal/config"
 	handler "go-gc-community/internal/delivery/http"
@@ -10,6 +11,10 @@ import (
 	"go-gc-community/pkg/database/mysql"
 	"go-gc-community/pkg/logger"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func Run() {
@@ -41,4 +46,18 @@ func Run() {
 
 
 	logger.Info("Server Started")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+	<-quit
+
+	const timeout = 5 * time.Second
+
+	ctx, shutdown := context.WithTimeout(context.Background(), timeout)
+	defer shutdown()
+
+	if err := srv.Stop(ctx); err != nil {
+		logger.Errorf("failed to stop server: %v", err)
+	}
 }
